@@ -85,6 +85,11 @@ namespace Hangfire.PostgreSql
         public bool PrepareSchemaIfNecessary { get; set; }
         public string SchemaName { get; set; }
 
+        public bool RequireSsl { get; set; }
+        public bool TrustServerCertificate { get; set; }
+        public string CertFilePath { get; set; }
+        public string CertPassword { get; set; }
+
         private static void ThrowIfValueIsNotPositive(TimeSpan value, string fieldName)
         {
             var message = $"The {fieldName} property value should be positive. Given: {value}.";

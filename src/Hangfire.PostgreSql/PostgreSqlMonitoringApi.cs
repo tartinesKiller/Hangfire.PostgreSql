@@ -23,6 +23,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using Dapper;
 using Hangfire.Common;
 using Hangfire.PostgreSql.Entities;
@@ -386,7 +387,24 @@ WHERE ""key"" = 'recurring-jobs';
             });
         }
 
-        protected virtual NpgsqlConnection GetConnection() => new NpgsqlConnection(_connectionString);
+        protected virtual NpgsqlConnection GetConnection()
+        {
+            var connectionStringBuilder = new NpgsqlConnectionStringBuilder(_connectionString)
+			{
+				Enlist = false, //Npgsql is not fully compatible with TransactionScope yet.
+				SslMode = _options.RequireSsl ? SslMode.Require : SslMode.Disable,
+				TrustServerCertificate = _options.TrustServerCertificate,
+				UseSslStream = true
+			};
+
+			var connection = new NpgsqlConnection(connectionStringBuilder.ToString());
+			if (_options.RequireSsl)
+			{
+				connection.ProvideClientCertificatesCallback += certs => certs.Add(new X509Certificate2(_options.CertFilePath, _options.CertPassword));
+			}
+
+            return connection;
+        }
 
         private Dictionary<DateTime, long> GetHourlyTimelineStats(
             NpgsqlConnection connection,

@@ -21,6 +21,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography.X509Certificates;
 #if (NETSTANDARD2_0)
 #else
 using System.Configuration;
@@ -182,10 +183,17 @@ namespace Hangfire.PostgreSql
 		{
 			var connectionStringBuilder = new NpgsqlConnectionStringBuilder(_connectionString)
 			{
-				Enlist = false //Npgsql is not fully compatible with TransactionScope yet.
+				Enlist = false, //Npgsql is not fully compatible with TransactionScope yet.
+				SslMode = _options.RequireSsl ? SslMode.Require : SslMode.Disable,
+				TrustServerCertificate = _options.TrustServerCertificate,
+				UseSslStream = true
 			};
 
 			var connection = new NpgsqlConnection(connectionStringBuilder.ToString());
+			if (_options.RequireSsl)
+			{
+				connection.ProvideClientCertificatesCallback += certs => certs.Add(new X509Certificate2(_options.CertFilePath, _options.CertPassword));
+			}
 			connection.Open();
 
 			return connection;
